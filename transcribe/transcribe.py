@@ -11,14 +11,14 @@ import sys
 
 class AudioTranscribe:
 
-    def __init__(self, path, rate, chunk, audio_duration):
+    def __init__(self, path, rate, chunk, audio_duration, on_transcribe=print):
         self._path = path
         self._rate = rate
         self._chunk = chunk
         self._audio_duration = audio_duration
+        self._on_transcribe = on_transcribe
 
-    @staticmethod
-    def __print_responses(responses):
+    def __print_responses(self, responses):
 
         num_chars_printed = 0
         for response in responses:
@@ -49,7 +49,7 @@ class AudioTranscribe:
                 num_chars_printed = len(transcript)
 
             else:
-                print(transcript + overwrite_chars)
+                self._on_transcribe(transcript + overwrite_chars)
 
                 # Exit recognition if any of the transcribed phrases could be
                 # one of our keywords.

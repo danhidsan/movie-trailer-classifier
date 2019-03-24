@@ -1,9 +1,6 @@
-import pyaudio
 import wave
 import os
 import time
-
-from six.moves import queue
 
 
 class AudioStreaming:
