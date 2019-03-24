@@ -11,27 +11,15 @@ import sys
 
 class AudioTranscribe:
 
-    def __init__(self, path, rate, chunk):
+    def __init__(self, path, rate, chunk, audio_duration):
         self._path = path
         self._rate = rate
         self._chunk = chunk
+        self._audio_duration = audio_duration
 
     @staticmethod
     def __print_responses(responses):
-        """Iterates through server responses and prints them.
 
-            The responses passed is a generator that will block until a response
-            is provided by the server.
-
-            Each response may contain multiple results, and each result may contain
-            multiple alternatives; for details, see https://goo.gl/tjCPAU.  Here we
-            print only the transcription for the top alternative of the top result.
-
-            In this case, responses are provided for interim results as well. If the
-            response is an interim one, print a line feed at the end of it, to allow
-            the next result to overwrite it, until the response is a final one. For the
-            final one, print a newline to preserve the finalized transcription.
-            """
         num_chars_printed = 0
         for response in responses:
             if not response.results:
@@ -72,9 +60,7 @@ class AudioTranscribe:
                 num_chars_printed = 0
 
     def transcribe(self):
-        # See http://g.co/cloud/speech/docs/languages
-        # for a list of supported languages.
-        language_code = 'es-ES'  # a BCP-47 language tag
+        language_code = 'es-ES'
 
         client = speech.SpeechClient()
         config = types.RecognitionConfig(
@@ -85,12 +71,11 @@ class AudioTranscribe:
             config=config,
             interim_results=True)
 
-        with AudioStreaming(self._path, self._rate, self._chunk) as stream:
+        with AudioStreaming(self._path, self._rate, self._chunk, self._audio_duration) as stream:
             audio_generator = stream.generator()
-            requests = (types.StreamingRecognizeRequest(audio_content=content)
-                        for content in audio_generator)
+            for content in audio_generator:
+                requests = [types.StreamingRecognizeRequest(audio_content=content)]
+                responses = client.streaming_recognize(streaming_config, requests)
 
-            responses = client.streaming_recognize(streaming_config, requests)
-
-            # Now, put the transcription responses to use.
-            self.__print_responses(responses)
+                # Now, put the transcription responses to use.
+                self.__print_responses(responses)

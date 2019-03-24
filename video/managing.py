@@ -18,7 +18,7 @@ class VideoManaging:
 
         try:
             audio = moviepy.AudioFileClip(self._path)
-            return audio
+            return audio, audio.duration
         except Exception as e:
             raise e
 
@@ -45,8 +45,8 @@ class VideoManaging:
     def manage(self):
 
         try:
-            audio_from_video = self.__video_to_audio()
+            audio_from_video, audio_duration = self.__video_to_audio()
             audio_path = self.__audio_to_wave(audio_from_video)
-            return audio_path
+            return audio_path, audio_duration
         except Exception as e:
             raise e
