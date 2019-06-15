@@ -25,9 +25,9 @@ class AudioTranscribe:
             if not response.results:
                 continue
 
-            # The `results` list is consecutive. For streaming, we only care about
-            # the first result being considered, since once it's `is_final`, it
-            # moves on to considering the next utterance.
+            # The `results` list is consecutive. For streaming, we only care
+            # about the first result being considered, since once it's
+            # `is_final`, it moves on to considering the next utterance.
             result = response.results[0]
             if not result.alternatives:
                 continue
@@ -35,8 +35,8 @@ class AudioTranscribe:
             # Display the transcription of the top alternative.
             transcript = result.alternatives[0].transcript
 
-            # Display interim results, but with a carriage return at the end of the
-            # line, so subsequent lines will overwrite them.
+            # Display interim results, but with a carriage return at the end
+            # of the line, so subsequent lines will overwrite them.
             #
             # If the previous result was longer than this one, we need to print
             # some extra spaces to overwrite the previous result
@@ -60,7 +60,7 @@ class AudioTranscribe:
                 num_chars_printed = 0
 
     def transcribe(self):
-        language_code = 'es-ES'
+        language_code = 'en-US'
 
         client = speech.SpeechClient()
         config = types.RecognitionConfig(
@@ -71,11 +71,16 @@ class AudioTranscribe:
             config=config,
             interim_results=True)
 
-        with AudioStreaming(self._path, self._rate, self._chunk, self._audio_duration) as stream:
+        with AudioStreaming(self._path, self._rate,
+                            self._chunk, self._audio_duration) as stream:
             audio_generator = stream.generator()
             for content in audio_generator:
-                requests = [types.StreamingRecognizeRequest(audio_content=content)]
-                responses = client.streaming_recognize(streaming_config, requests)
+                requests = [
+                    types.StreamingRecognizeRequest(audio_content=content)
+                    ]
+                responses = client.streaming_recognize(
+                    streaming_config, requests
+                    )
 
                 # Now, put the transcription responses to use.
                 self.__print_responses(responses)

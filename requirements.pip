@@ -1,0 +1,4 @@
+moviepy==1.0.0
+google-cloud-speech==0.36.3
+kafka-python==1.4.6
+spacy==2.1.4

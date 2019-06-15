@@ -4,7 +4,7 @@ from kafka.errors import KafkaError
 import json
 
 
-class KafkaConnector:
+class Producer:
 
     def __init__(self, topic, server="localhost:9092"):
         self._kafka_instance = KafkaProducer(bootstrap_servers=[server])

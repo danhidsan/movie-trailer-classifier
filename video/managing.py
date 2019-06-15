@@ -25,7 +25,8 @@ class VideoManaging:
     def __audio_to_wave(self, audio):
 
         """
-        Convert AudioFileClip from moviepy library in mono (one channel) .wav audio file
+        Convert AudioFileClip from moviepy library in mono (one channel)
+        .wav audio file
 
         :param audio: AudioFileClip param from moviepy library
         :return: success boolean or None
