@@ -1,6 +1,4 @@
 #! /usr/bin/python3
-import sys
-import getopt
 import argparse
 
 from kafka import KafkaConsumer
