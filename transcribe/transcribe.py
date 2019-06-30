@@ -1,26 +1,32 @@
 
-from video.audio import AudioStreaming
+import re
+import sys
+import json
 
 from google.cloud import speech
 from google.cloud.speech import enums
 from google.cloud.speech import types
 
-import re
-import sys
+from video.audio import AudioStreaming
 
 
 class AudioTranscribe:
 
-    def __init__(self, path, rate, chunk, audio_duration, on_transcribe=print):
+    def __init__(
+            self, path, rate, chunk, audio_duration, on_complete,
+            on_transcribe=print
+            ):
         self._path = path
         self._rate = rate
         self._chunk = chunk
         self._audio_duration = audio_duration
         self._on_transcribe = on_transcribe
+        self._on_complete = on_complete
 
     def __print_responses(self, responses):
 
         num_chars_printed = 0
+        text_buffer = ""
         for response in responses:
             if not response.results:
                 continue
@@ -44,12 +50,15 @@ class AudioTranscribe:
 
             if not result.is_final:
                 sys.stdout.write(transcript + overwrite_chars + '\r')
+
                 sys.stdout.flush()
 
                 num_chars_printed = len(transcript)
 
             else:
                 self._on_transcribe(transcript + overwrite_chars)
+
+                text_buffer += transcript + overwrite_chars
 
                 # Exit recognition if any of the transcribed phrases could be
                 # one of our keywords.
@@ -58,6 +67,8 @@ class AudioTranscribe:
                     break
 
                 num_chars_printed = 0
+
+        return text_buffer
 
     def transcribe(self):
         language_code = 'en-US'
@@ -74,6 +85,7 @@ class AudioTranscribe:
         with AudioStreaming(self._path, self._rate,
                             self._chunk, self._audio_duration) as stream:
             audio_generator = stream.generator()
+            response_buffer = ""
             for content in audio_generator:
                 requests = [
                     types.StreamingRecognizeRequest(audio_content=content)
@@ -83,4 +95,7 @@ class AudioTranscribe:
                     )
 
                 # Now, put the transcription responses to use.
-                self.__print_responses(responses)
+                response_buffer += self.__print_responses(responses)
+
+            # call on complete event
+            self._on_complete(response_buffer)
