@@ -4,8 +4,11 @@ import requests
 import os
 import pysrt
 import logging
+import string
 
 from xmlrpc.client import ServerProxy
+
+from nlp.nlp import text_tokenizer
 
 # log config
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -17,14 +20,54 @@ rpc_pass = os.environ.get('RPC_PASS')
 rpc_token = os.environ.get('RPC_TOKEN')
 
 
+def clean_text(text: str):
+
+    # split by spaces
+    text_split = text.split()
+
+    table = str.maketrans(string.punctuation, ' '*len(string.punctuation))
+
+    replaced_text = [
+        w.replace('</i>', ' ').replace('<i>', ' ') for w in text_split
+        ]
+
+    stripped = [w.translate(table) for w in replaced_text]
+
+    words_join = ' '.join(stripped)
+
+    return words_join
+
+
+def preprocessing_subtitles(subtitle: str):
+    # Get subtitle tokens
+    subtitles_tokens = text_tokenizer(subtitle)
+
+    # get tokens text list
+    text_first = [token[0] for token in subtitles_tokens]
+    text_join_first = ' '.join(text_first)
+
+    # clean text
+    clean_first = clean_text(text_join_first)
+
+    # second tokenizer
+    subtitles_tokens_second = text_tokenizer(clean_first)
+    text_second = [token[0] for token in subtitles_tokens_second]
+    text_join_second = ' '.join(text_second)
+
+    return text_join_second
+
+
 def read_srt_file(path: str):
     # open .srt file
     subs = pysrt.open(path, encoding='iso-8859-1')
 
     # extract subs text
-    subs_list = [sub.text for sub in subs]
+    subs_list = [
+        sub.text
+        for sub in subs
+        ]
 
-    return ''.join(subs_list)
+    return ' '.join(subs_list)
 
 
 def get_subs_zip_url(imdb_id: str):
@@ -111,3 +154,5 @@ def get_subtitles(imdb_id: str):
     os.remove(store_path + srt_file_name)
 
     return srt_subs
+
+

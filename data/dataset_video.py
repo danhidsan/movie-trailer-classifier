@@ -12,17 +12,6 @@ from pytube import YouTube
 logging.basicConfig(level=logging.INFO)
 
 
-# load datasets
-yt_movielens = pd.read_csv('data/datasets/ml-youtube.csv')
-links_movielens = pd.read_csv('data/datasets/links.csv')
-
-# inner join datasets
-yt_movielens_imdb = pd.merge(
-  left=yt_movielens, right=links_movielens,
-  left_on='movieId', right_on='movieId'
-)
-
-
 # handle on complete download
 def handle_on_complete(stream, file_handle):
     logging.info('download has been completed')
@@ -44,10 +33,10 @@ def download_youtube_video(
 
 
 def get_year(title: str):
-    year = re.search(
-        r'\(\b(19|20)\d{2}\b\)', title
-            ).group().replace('(', '').replace(')', '')
+    year = re.search(r'\(\b(19|20)\d{2}\b\)', title)
 
-    return int(year)
-
+    if year is not None:
+        return int(year.group().replace('(', '').replace(')', ''))
+    else:
+        return None
 
