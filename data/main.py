@@ -6,38 +6,42 @@ import random
 import sys
 import pandas as pd
 
-from dataset_subtitle import get_subtitles, preprocessing_subtitles
+from dataset_subtitle import (
+    get_subtitles, preprocessing_subtitles, format_imdb_id
+    )
 from dataset_video import get_year
 
 # logging config
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
-def write_csv(csv_writer: csv.DictWriter, dict_data: dict, json: dict):
+def get_subtitles_write_csv(
+        csv_writer: csv.DictWriter, dict_data: dict, json: dict,
+        rated_filter: str = None
+        ):
     """ Write row in csv with csv DictWriter
     """
+    rated_set = ('G', 'PG', 'PG-13', 'R', 'NC-17')
 
     if 'Rated' in json:
-        dict_data['rated'] = json['Rated']
-        csv_writer.writerow(
-            dict_data
-        )
-    else:
-        logging.info(
-            'Rated not found for'.format(
-                dict_data['imdb_id']
+        dict_data['rated'] = json['Rated'] if json['Rated'] in rated_set else 'other'
+        if rated_filter is None or rated_filter == dict_data['rated']:
+            logging.info('Processing {}-{}'.format(
+                dict_data['imdb_id'],
+                dict_data['title']
+            ))
+            subtitles = get_subtitles(
+                str(dict_data['imdb_id']), 'opensubtitles'
                 )
-            )
-
-
-def format_imdb_id(imdb_id: int):
-    """ Format imdb id acording his length
-    """
-
-    if len(str(imdb_id)) is 5:
-        return 'tt00{}'.format(imdb_id)
+            if subtitles is not None:
+                dict_data['subtitles'] = preprocessing_subtitles(
+                    str(subtitles)
+                    )
+                csv_writer.writerow(
+                    dict_data
+                )
     else:
-        return 'tt0{}'.format(imdb_id)
+        logging.info('Rated not found for'.format(dict_data['imdb_id']))
 
 
 def iterate_and_write_csv(
@@ -51,12 +55,6 @@ def iterate_and_write_csv(
     for index, row in sub_dataframe.iterrows():
         time.sleep(random.randint(0, 10))
         if get_year(row['title']) > 1960:
-
-            logging.info('Processing {}-{}'.format(
-                row['imdbId'],
-                row['title']
-            ))
-
             formatted_imdb_id = format_imdb_id(row['imdbId'])
 
             # Params for the request
@@ -70,21 +68,15 @@ def iterate_and_write_csv(
             req = requests.get(omdb_url, params=params)
             if req.status_code == 200:
                 json = req.json()
-
-                subtitles = get_subtitles(row['imdbId'])
-                if subtitles is not None:
-                    write_csv(
-                        csv_writer,
-                        {
-                            'id': index,
-                            'imdb_id': row['imdbId'],
-                            'title': row['title'],
-                            'subtitles': preprocessing_subtitles(
-                                str(subtitles)
-                                )
-                        },
-                        json
-                    )
+                get_subtitles_write_csv(
+                    csv_writer,
+                    {
+                        'id': index,
+                        'imdb_id': row['imdbId'],
+                        'title': row['title']
+                    },
+                    json
+                )
         else:
             continue
 
@@ -98,6 +90,11 @@ def iter_write_csv_random(
 
     rated_values = ('G', 'PG', 'PG-13', 'R', 'NC-17')
 
+    if rated is not None and rated not in rated_values:
+        raise Exception(
+            "Rated parameter should be ('G', 'PG', 'PG-13', 'R', 'NC-17')"
+            )
+
     # getting id set from train dataframe
     movie_id_set = set(train_dataframe['id'].values)
 
@@ -107,17 +104,11 @@ def iter_write_csv_random(
         ]
 
     while len(rest_data_frame) > 0:
-
         sample = rest_data_frame.sample().iloc[0]
         index = list(rest_data_frame.sample().to_dict()['youtubeId'].keys())[0]
 
         year = get_year(sample.title)
         if year is not None and year > 1960:
-            logging.info('Processing {}-{}'.format(
-                sample.imdbId,
-                sample.title
-            ))
-
             formatted_imdb_id = format_imdb_id(sample.imdbId)
 
             # Params for the request
@@ -131,26 +122,23 @@ def iter_write_csv_random(
             req = requests.get(omdb_url, params=params)
             if req.status_code == 200:
                 json = req.json()
+                get_subtitles_write_csv(
+                    csv_writer,
+                    {
+                        'id': index,
+                        'imdb_id': sample.imdbId,
+                        'title': sample.title
+                    },
+                    json,
+                    rated
+                )
 
-                subtitles = get_subtitles(str(sample.imdbId))
-                if subtitles is not None:
-                    write_csv(
-                        csv_writer,
-                        {
-                            'id': index,
-                            'imdb_id': sample.imdbId,
-                            'title': sample.title,
-                            'subtitles': preprocessing_subtitles(
-                                str(subtitles)
-                                )
-                        },
-                        json
-                    )
-
-                    # removing dataframe row
-                    rest_data_frame = rest_data_frame[
-                        rest_data_frame['movieId'] != sample.movieId
-                    ]
+                # removing dataframe row
+                rest_data_frame = rest_data_frame[
+                    rest_data_frame['movieId'] != sample.movieId
+                ]
+            elif req.status_code == 401:
+                logging.info("OMDB API Unanthorized")     
         else:
             # removing dataframe row
             rest_data_frame = rest_data_frame[
@@ -161,35 +149,7 @@ def iter_write_csv_random(
 
 if __name__ == "__main__":
 
-    if sys.argv[1] == 'preprocessing':
-        train_dataframe = pd.read_csv('data/datasets/train_data.csv', sep='|')
-        with open('data/datasets/train_data1.csv', 'a') as file:
-            field_names = ['id', 'imdb_id', 'title', 'rated', 'subtitles']
-            csv_writer = csv.DictWriter(
-                file, fieldnames=field_names, delimiter='|'
-            )
-
-            csv_writer.writeheader()
-
-            for index, row in train_dataframe.iterrows():
-
-                dataframe_id = row['id']
-                imdb_id = row['imdb_id']
-                title = row['title']
-                rated = row['rated']
-                subtitles = row['subtitles']
-
-                subtitles_proc = preprocessing_subtitles(str(subtitles))
-
-                csv_writer.writerow({
-                    'id': dataframe_id,
-                    'imdb_id': imdb_id,
-                    'title': title,
-                    'rated': rated,
-                    'subtitles': subtitles_proc
-                })
-
-    elif sys.argv[1] == 'id':
+    if sys.argv[1] == 'id':
         logging.info('Starting load dataset')
 
         # load datasets
@@ -228,9 +188,11 @@ if __name__ == "__main__":
             )
 
         # load train dataset
-        train_dataframe = pd.read_csv('data/datasets/train_data2.csv', sep='|')
-        
-        with open('data/datasets/train_data2.csv', 'a') as file:
+        train_dataframe = pd.read_csv(
+            'data/datasets/train_dataset.csv', sep='|'
+            )
+
+        with open('data/datasets/train_dataset.csv', 'a') as file:
             logging.info('Opening csv')
             field_names = ['id', 'imdb_id', 'title', 'rated', 'subtitles']
             csv_writer = csv.DictWriter(
@@ -240,6 +202,7 @@ if __name__ == "__main__":
             iter_write_csv_random(
                 yt_movielens_imdb, train_dataframe, csv_writer
                 )
+
     else:
         print(
             """

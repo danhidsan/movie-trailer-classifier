@@ -1,7 +1,12 @@
 #! /usr/bin/python3
 import argparse
+import logging
 
 from kafka import KafkaConsumer
+from _kafka.producer import Producer
+
+# log config
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
 class Consumer:
@@ -25,19 +30,36 @@ class Consumer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run kafka consumer')
     parser.add_argument(
-        'topic', metavar='T', type=str, help='Topic for the consumer'
+        '--servers', type=str, nargs='+', help='Servers hosts'
         )
-    parser.add_argument('--servers', type=str, nargs='+')
+    parser.add_argument(
+        '--input', action='store_true',
+        help='Run consumer type input data'
+        )
+    parser.add_argument(
+        '--output', action='store_true',
+        help='Run consumer type output data'
+    )
 
     args = parser.parse_args()
 
-    topic = args.topic
-    servers = ['localhost:9092']
+    servers = ['localhost:32775']
 
     if args.servers is not None:
         servers = args.servers
 
-    with Consumer(topic, servers=servers) as stream:
-        generator = stream.generator()
-        for message in generator:
-            print(message)
+    if args.output:
+        logging.info("Running consumer type output")
+        with Consumer('out_data', servers=servers) as stream:
+            generator = stream.generator()
+            for message in generator:
+                print(message.value.decode('utf-8'))
+    
+    if args.input:
+        logging.info("Running consumer type input")
+        producer = Producer('out_data', server="localhost:32775")
+        with Consumer('in_data', servers=servers) as stream:
+            generator = stream.generator()
+            for message in generator:
+                decoded = message.value.decode('utf-8')
+                producer.send_data(decoded + " mundo")

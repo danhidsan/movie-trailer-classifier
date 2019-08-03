@@ -7,6 +7,7 @@ import logging
 import string
 
 from xmlrpc.client import ServerProxy
+from bs4 import BeautifulSoup
 
 from nlp.nlp import text_tokenizer
 
@@ -14,10 +15,16 @@ from nlp.nlp import text_tokenizer
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 
-rpc_server = ServerProxy('https://api.opensubtitles.org:443/xml-rpc')
-rpc_user = os.environ.get('RPC_USER')
-rpc_pass = os.environ.get('RPC_PASS')
-rpc_token = os.environ.get('RPC_TOKEN')
+def format_imdb_id(imdb_id: int):
+    """ Format imdb id acording his length
+    """
+
+    if len(str(imdb_id)) is 5:
+        return 'tt00{}'.format(imdb_id)
+    elif len(str(imdb_id)) is 6:
+        return 'tt0{}'.format(imdb_id)
+    else:
+        return 'tt{}'.format(imdb_id)
 
 
 def clean_text(text: str):
@@ -43,7 +50,7 @@ def preprocessing_subtitles(subtitle: str):
     subtitles_tokens = text_tokenizer(subtitle)
 
     # get tokens text list
-    text_first = [token[0] for token in subtitles_tokens]
+    text_first = [token for token in subtitles_tokens]
     text_join_first = ' '.join(text_first)
 
     # clean text
@@ -51,7 +58,7 @@ def preprocessing_subtitles(subtitle: str):
 
     # second tokenizer
     subtitles_tokens_second = text_tokenizer(clean_first)
-    text_second = [token[0] for token in subtitles_tokens_second]
+    text_second = [token for token in subtitles_tokens_second]
     text_join_second = ' '.join(text_second)
 
     return text_join_second
@@ -70,7 +77,12 @@ def read_srt_file(path: str):
     return ' '.join(subs_list)
 
 
-def get_subs_zip_url(imdb_id: str):
+def get_subs_zip_url_opensubtitles(imdb_id: str):
+
+    rpc_server = ServerProxy('https://api.opensubtitles.org:443/xml-rpc')
+    rpc_user = os.environ.get('RPC_USER')
+    rpc_pass = os.environ.get('RPC_PASS')
+    rpc_token = os.environ.get('RPC_TOKEN')
 
     # imdb id search without login
     search_response = rpc_server.SearchSubtitles(
@@ -114,13 +126,69 @@ def get_subs_zip_url(imdb_id: str):
             return None
 
 
-def get_subtitles(imdb_id: str):
+def get_subs_zip_url_yifysubtitles(imdb_id: str):
+
+    yify_url = 'https://www.yifysubtitles.com'
+    yify_uri = yify_url + '/movie-imdb/'
+
+    sub_request = requests.get(yify_uri + format_imdb_id(imdb_id))
+
+    if sub_request.status_code == 200:
+        url_list = []
+        soup = BeautifulSoup(sub_request.text, 'html.parser')
+
+        try:
+            table_body = soup.find('tbody')
+            table_tr_all = table_body.find_all('tr')
+            for tr in table_tr_all:
+                rating = int(tr.find(attrs={'class': 'rating-cell'}).text)
+                lang = tr.find(attrs={'class': 'sub-lang'}).text
+                sub_zip_url = yify_url + tr.find(
+                    attrs={'class': 'download-cell'}
+                    ).find('a').get('href').replace(
+                        'subtitles/', 'subtitle/'
+                        ) + '.zip'
+
+                if lang == 'English':
+                    url_list.append({
+                        'rating': rating,
+                        'sub_zip_url': sub_zip_url
+                    })
+
+            if len(url_list) == 0:
+                return None
+
+            result_url = sorted(
+                url_list, key=lambda x: x['rating'], reverse=True
+                )[0]['sub_zip_url']
+
+        except Exception:
+            return None
+
+        return result_url
+    elif sub_request.status_code == 401:
+        logging.info('YIFY Subtitles unauthorized')
+        return None
+
+
+def get_subtitles(imdb_id: str, sub_source: str = 'opensubtitles'):
+
+    sources = {
+        'opensubtitles': get_subs_zip_url_opensubtitles,
+        'yifysubtitles': get_subs_zip_url_yifysubtitles
+    }
+
+    if sub_source not in sources.keys():
+        raise Exception(
+            'Subtitle source not suported for "{}"'.format(sub_source)
+            )
+
     store_path = 'data/srt/'
 
     logging.info('Getting subtitle for {}'.format(imdb_id))
 
     # get zipfile url
-    zip_url = get_subs_zip_url(imdb_id)
+    zip_url = sources[sub_source](imdb_id)
     if zip_url is None:
         logging.error('Imposible obtain zip url for {}'.format(imdb_id))
         return None
@@ -154,5 +222,4 @@ def get_subtitles(imdb_id: str):
     os.remove(store_path + srt_file_name)
 
     return srt_subs
-
 

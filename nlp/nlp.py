@@ -16,7 +16,7 @@ def text_tokenizer(text):
 
     # Applies conditions to tokens and return the token lemma
     tokens = [
-        (token.lemma_, token.pos_) for token in doc
+        token.lemma_ for token in doc
         if not token.is_stop and    # Remove stop words
         token.pos_ not in pos_discard and   # Discard some pos
         len(token.text) > 2
