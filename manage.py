@@ -5,13 +5,14 @@ import logging
 import csv
 import random
 import requests
+import argparse
+
 import pandas as pd
 
 from video.managing import VideoManaging
 from transcribe.transcribe import AudioTranscribe
 from _kafka.producer import Producer
 from _kafka.consumer import Consumer
-from nlp.nlp import text_pipeline
 from data.dataset_subtitle import get_subtitles
 from data.dataset_video import get_year
 
@@ -36,29 +37,34 @@ def handle_on_complete_transcribe(response_buffer):
 # main
 if __name__ == '__main__':
 
-    if sys.argv[1] == 'consumer':
-        with Consumer('audio-streaming') as stream:
-            generator = stream.generator()
-            for message in generator:
-                tokens = text_pipeline(message.value.decode('utf-8'))
-                print(tokens)
-    elif sys.argv[1] == 'transcribe':
+    parser = argparse.ArgumentParser('Run video transcribe')
+    parser.add_argument(
+        'video', metavar='V', type=str, help="Video path"
+        )
+    parser.add_argument(
+        '--servers', type=str, nargs='+', help='Servers hosts'
+        )
 
-        RES_PATH = '.tmp/{}.wav'.format(str(int(time.time())))
-        RATE = 16000
-        CHUNK = 1024*100
+    args = parser.parse_args()
 
-        video_managing = VideoManaging(
-            'samples/mayuko.mp4', RATE, RES_PATH
+    RES_PATH = '.tmp/{}.wav'.format(str(int(time.time())))
+    RATE = 16000
+    CHUNK = 1024*100
+
+    video_managing = VideoManaging(
+        args.video, RATE, RES_PATH
+        )
+
+    audio_path, audio_duration = video_managing.manage()
+
+    kafka_connector = Producer(
+            'in_data', servers=["192.168.100.110:32776"]
             )
 
-        audio_path, audio_duration = video_managing.manage()
+    audio_transcribe = AudioTranscribe(
+        RES_PATH, RATE, CHUNK, audio_duration,
+        on_transcribe=on_transcribe_data,
+        on_complete=handle_on_complete_transcribe
+        )
 
-        kafka_connector = Producer('audio-streaming')
-
-        audio_transcribe = AudioTranscribe(
-            RES_PATH, RATE, CHUNK, audio_duration,
-            on_transcribe=on_transcribe_data
-            )
-
-        audio_transcribe.transcribe()
+    audio_transcribe.transcribe()

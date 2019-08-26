@@ -4,6 +4,7 @@ import logging
 
 from kafka import KafkaConsumer
 from _kafka.producer import Producer
+from ml.classifier import TextClassifier
 
 # log config
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -54,12 +55,13 @@ if __name__ == "__main__":
             generator = stream.generator()
             for message in generator:
                 print(message.value.decode('utf-8'))
-    
+
     if args.input:
         logging.info("Running consumer type input")
-        producer = Producer('out_data', server="localhost:32775")
+        classifier = TextClassifier()
+        producer = Producer('out_data', servers=servers)
         with Consumer('in_data', servers=servers) as stream:
             generator = stream.generator()
             for message in generator:
                 decoded = message.value.decode('utf-8')
-                producer.send_data(decoded + " mundo")
+                producer.send_data(classifier.predict(decoded)[0])

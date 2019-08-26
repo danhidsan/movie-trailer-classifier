@@ -6,8 +6,8 @@ from kafka.errors import KafkaError
 
 class Producer:
 
-    def __init__(self, topic, server="localhost:9092"):
-        self._kafka_instance = KafkaProducer(bootstrap_servers=[server])
+    def __init__(self, topic, servers=["localhost:9092"]):
+        self._kafka_instance = KafkaProducer(bootstrap_servers=servers)
         self._topic = topic
 
     def send_data(self, data):

@@ -1,3 +1,5 @@
+import os
+
 import moviepy.editor as moviepy
 
 
@@ -6,6 +8,7 @@ class VideoManaging:
     def __init__(self, path, rate, res_path):
         self._path = path
         self._rate = rate
+        self._file_stats = os.stat(path)
         self._res_path = res_path
 
     def __video_to_audio(self):
@@ -15,6 +18,9 @@ class VideoManaging:
 
         :return: AudioFileClip from moviepy
         """
+
+        if self._file_stats.st_size > 10000000:
+            raise IOError('File size must be grater than 10 MB')
 
         try:
             audio = moviepy.AudioFileClip(self._path)

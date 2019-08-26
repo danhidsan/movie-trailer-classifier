@@ -88,8 +88,12 @@ class Pipeline:
 class TextClassifier(Pipeline):
 
     def __init__(self):
-        self.model = pickle.load(open('ml/train/model.pickle', 'rb'))
-        self.vocabulary = pickle.load(open('ml/train/vocab.pickle', 'rb'))
+
+        try:
+            self.model = pickle.load(open('ml/train/model.pickle', 'rb'))
+            self.vocabulary = pickle.load(open('ml/train/vocab.pickle', 'rb'))
+        except FileNotFoundError:
+            pass
 
     def __get_classifier(self, classifier: str):
 
@@ -147,6 +151,10 @@ class TextClassifier(Pipeline):
         with open("vocab.pickle", 'wb') as handle:
             pickle.dump(vocabulary, handle)
 
+        # Storing model
+        with open("model.pickle", 'wb') as handle:
+            pickle.dump(classifier, handle)
+
         # Returns the mean accuracy on the given test data and labels.
         score = classifier.score(test_data_values, test_target_values)
         print('-----------------ACCURANCY SCORE--------------------')
@@ -155,22 +163,12 @@ class TextClassifier(Pipeline):
         # Predicting class labels for samples
         pred = classifier.predict(test_data_values)
 
-        # F1 Score
-        f1_score_ = f1_score(
-            test_data_values, pred, labels=labels, average='weighted'
-            )
-        print('-----------------F1 Score----------------------')
-        print('Score: {}'.format(f1_score_))
-
         # Confusion matrix
         print_confusion_matrix(test_target_values, pred, labels)
 
         end = time.time()
 
         print('Time: {} s'.format(end-start))
-
-        with open("ml/train/model.pickle", 'wb') as handle:
-            pickle.dump(classifier, handle)
 
         self.model = classifier
 
@@ -182,6 +180,7 @@ class TextClassifier(Pipeline):
 
         return prediction
 
+
 classifier = TextClassifier()
 
-classifier.train(classifier.LINEAR_SVC)
+classifier.train('get_multinomial_nb')
