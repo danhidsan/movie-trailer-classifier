@@ -1,6 +1,9 @@
 import pickle
 
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
@@ -9,6 +12,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
+from sklearn.metrics import confusion_matrix
 
 from nlp.nlp import text_tokenizer
 
@@ -90,10 +94,10 @@ class TextClassifier(Pipeline):
     def __init__(self):
 
         try:
-            self.model = pickle.load(open('ml/train/model.pickle', 'rb'))
-            self.vocabulary = pickle.load(open('ml/train/vocab.pickle', 'rb'))
+            self.model = pickle.load(open('/Users/danielhidalgo/Documents/developer/tfg/video_to_text/ml/train/model.pickle', 'rb'))
+            self.vocabulary = pickle.load(open('/Users/danielhidalgo/Documents/developer/tfg/video_to_text/ml/train/vocab.pickle', 'rb'))
         except FileNotFoundError:
-            pass
+            raise FileNotFoundError()
 
     def __get_classifier(self, classifier: str):
 
@@ -104,8 +108,28 @@ class TextClassifier(Pipeline):
 
         return classifier
 
+    @staticmethod
+    def __print_confusion_matrix(
+            target, pred, labels, figsize=(10, 7), fontsize=14):
+        """ Prints a confusion matrix, as returned by
+            sklearn.metrics.confusion_matrix, as a heatmap.
+        """
+
+        conf_mat = confusion_matrix(target, pred)
+
+        fig, ax = plt.subplots(figsize=figsize)
+        sns.heatmap(
+            conf_mat, annot=True, fmt='d', xticklabels=labels,
+            yticklabels=labels
+        )
+
+        plt.ylabel('Actual')
+        plt.xlabel('Predicted')
+        plt.show()
+
     @property
     def get_classifier_name(self):
+
         classifier = self.model.get_params()['classifier']
 
         return classifier.__class__.__name__
@@ -164,7 +188,7 @@ class TextClassifier(Pipeline):
         pred = classifier.predict(test_data_values)
 
         # Confusion matrix
-        print_confusion_matrix(test_target_values, pred, labels)
+        self.__print_confusion_matrix(test_target_values, pred, labels)
 
         end = time.time()
 
@@ -180,7 +204,3 @@ class TextClassifier(Pipeline):
 
         return prediction
 
-
-classifier = TextClassifier()
-
-classifier.train('get_multinomial_nb')
