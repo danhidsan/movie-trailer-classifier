@@ -1,6 +1,8 @@
 #! /usr/bin/python3
 import argparse
 import logging
+import json
+import msgpack
 
 from kafka import KafkaConsumer
 from _kafka.producer import Producer
@@ -14,7 +16,8 @@ class Consumer:
 
     def __init__(self, topic, servers=['localhost:9092']):
         self._kafka_consumer = KafkaConsumer(
-            topic, bootstrap_servers=servers
+            topic, bootstrap_servers=servers, 
+            value_deserializer=msgpack.unpackb
             )
 
     def __enter__(self):
@@ -44,9 +47,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    servers = ['localhost:32775']
+    servers = ['localhost:32771']
 
     if args.servers is not None:
+        print(args.servers)
         servers = args.servers
 
     if args.output:
@@ -59,9 +63,22 @@ if __name__ == "__main__":
     if args.input:
         logging.info("Running consumer type input")
         classifier = TextClassifier()
+        logging.info(
+            "Created Classifier with ${}".format(
+                classifier.get_classifier_name
+                )
+            )
         producer = Producer('out_data', servers=servers)
         with Consumer('in_data', servers=servers) as stream:
             generator = stream.generator()
             for message in generator:
                 decoded = message.value.decode('utf-8')
-                producer.send_data(classifier.predict(decoded)[0])
+                dict_decoded = json.loads(decoded)
+                result = {
+                    'video_name': dict_decoded['video_name'],
+                    'rated': classifier.predict(
+                        dict_decoded['transcription']
+                        )[0]
+                }
+                print(result)
+                producer.send_data(result)

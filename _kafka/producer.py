@@ -1,4 +1,5 @@
 import json
+import msgpack
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
@@ -7,7 +8,9 @@ from kafka.errors import KafkaError
 class Producer:
 
     def __init__(self, topic, servers=["localhost:9092"]):
-        self._kafka_instance = KafkaProducer(bootstrap_servers=servers)
+        self._kafka_instance = KafkaProducer(
+            bootstrap_servers=servers, value_serializer=msgpack.dumps
+            )
         self._topic = topic
 
     def send_data(self, data):
