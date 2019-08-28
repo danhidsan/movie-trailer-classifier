@@ -6,6 +6,7 @@ import csv
 import random
 import requests
 import argparse
+import pickle
 
 import pandas as pd
 
@@ -28,11 +29,6 @@ os.environ[
 def on_transcribe_data(data):
     kafka_connector.send_data(data)
 
-
-# On complete transcribe
-def handle_on_complete_transcribe(response_buffer):
-    logging.info('transcribe has been finished')
-    print(response_buffer)
 
 # main
 if __name__ == '__main__':
@@ -58,13 +54,13 @@ if __name__ == '__main__':
     audio_path, audio_duration = video_managing.manage()
 
     kafka_connector = Producer(
-            'in_data', servers=["192.168.100.110:32776"]
+            'in_data', servers=args.servers
             )
 
     audio_transcribe = AudioTranscribe(
+        args.video.split('/')[-1],
         RES_PATH, RATE, CHUNK, audio_duration,
-        on_transcribe=on_transcribe_data,
-        on_complete=handle_on_complete_transcribe
+        on_transcribe=on_transcribe_data
         )
 
     audio_transcribe.transcribe()

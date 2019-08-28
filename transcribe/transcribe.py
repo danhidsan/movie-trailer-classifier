@@ -13,15 +13,15 @@ from video.audio import AudioStreaming
 class AudioTranscribe:
 
     def __init__(
-            self, path, rate, chunk, audio_duration, on_complete,
+            self, video_name, path, rate, chunk, audio_duration,
             on_transcribe=print
             ):
+        self.video_name = video_name
         self._path = path
         self._rate = rate
         self._chunk = chunk
         self._audio_duration = audio_duration
         self._on_transcribe = on_transcribe
-        self._on_complete = on_complete
 
     def __print_responses(self, responses):
 
@@ -56,7 +56,10 @@ class AudioTranscribe:
                 num_chars_printed = len(transcript)
 
             else:
-                self._on_transcribe(transcript + overwrite_chars)
+                self._on_transcribe({
+                    'video_name': self.video_name,
+                    'transcription': transcript + overwrite_chars
+                    })
 
                 text_buffer += transcript + overwrite_chars
 
@@ -96,6 +99,3 @@ class AudioTranscribe:
 
                 # Now, put the transcription responses to use.
                 response_buffer += self.__print_responses(responses)
-
-            # call on complete event
-            self._on_complete(response_buffer)
