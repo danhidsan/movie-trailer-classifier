@@ -17,12 +17,14 @@ from _kafka.consumer import Consumer
 from data.dataset_subtitle import get_subtitles
 from data.dataset_video import get_year
 
+FILE_PATH = os.path.abspath(os.path.dirname(__file__))
+
 # logging config
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
 os.environ[
     'GOOGLE_APPLICATION_CREDENTIALS'
-] = "/Users/danielhidalgo/Downloads/credentials.json"
+] = os.path.join(FILE_PATH, "credentials.json")
 
 
 # On transcribe callback

@@ -1,5 +1,6 @@
 import pickle
 import time
+import os
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,6 +17,8 @@ from sklearn.svm import LinearSVC
 from sklearn.metrics import confusion_matrix
 
 from nlp.nlp import text_tokenizer
+
+FILE_PATH = os.path.abspath(os.path.dirname(__file__))
 
 
 def predict(text: str):
@@ -67,7 +70,7 @@ class Pipeline:
 
     @property
     def get_logistic_regression(self):
-        return Pipeline(
+        return SkPipeline(
             verbose=True,
             steps=[
                 ('vectorizer', CountVectorizer(
@@ -95,8 +98,12 @@ class TextClassifier(Pipeline):
     def __init__(self):
 
         try:
-            self.model = pickle.load(open('/Users/danielhidalgo/Documents/developer/tfg/video_to_text/ml/train/model.pickle', 'rb'))
-            self.vocabulary = pickle.load(open('/Users/danielhidalgo/Documents/developer/tfg/video_to_text/ml/train/vocab.pickle', 'rb'))
+            self.model = pickle.load(
+                open(FILE_PATH + '/train/model.pickle', 'rb')
+                )
+            self.vocabulary = pickle.load(
+                open(FILE_PATH + '/train/vocab.pickle', 'rb')
+                )
         except FileNotFoundError:
             raise FileNotFoundError()
 
@@ -136,8 +143,11 @@ class TextClassifier(Pipeline):
         return classifier.__class__.__name__
 
     def train(self, classifier: str):
+
+        start = time.time()
+
         dataframe = pd.read_csv(
-            '/Users/danielhidalgo/Documents/developer/tfg/video_to_text/data/datasets/train_dataset.csv',
+            os.path.join(FILE_PATH, '../data/datasets/train_dataset.csv'),
             sep='|'
         )
         classifier = self.__get_classifier(classifier)
@@ -173,11 +183,11 @@ class TextClassifier(Pipeline):
 
         # Storing vocabulay
         vocabulary = classifier.get_params()['vectorizer'].vocabulary_
-        with open("vocab.pickle", 'wb') as handle:
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/train/vocab.pickle', 'wb') as handle:
             pickle.dump(vocabulary, handle)
 
         # Storing model
-        with open("model.pickle", 'wb') as handle:
+        with open(os.path.dirname(os.path.realpath(__file__)) + '/train/model.pickle', 'wb') as handle:
             pickle.dump(classifier, handle)
 
         # Returns the mean accuracy on the given test data and labels.

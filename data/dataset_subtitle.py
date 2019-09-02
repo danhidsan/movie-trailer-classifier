@@ -14,6 +14,8 @@ from nlp.nlp import text_tokenizer
 # log config
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
 
+os.environ['RPC_TOKEN'] = ""
+
 
 def format_imdb_id(imdb_id: int):
     """ Format imdb id acording his length
@@ -80,9 +82,8 @@ def read_srt_file(path: str):
 def get_subs_zip_url_opensubtitles(imdb_id: str):
 
     rpc_server = ServerProxy('https://api.opensubtitles.org:443/xml-rpc')
-    rpc_user = os.environ.get('RPC_USER')
-    rpc_pass = os.environ.get('RPC_PASS')
-    rpc_token = os.environ.get('RPC_TOKEN')
+    rpc_user = 'danhidsan'
+    rpc_pass = 'rWWbKzEQfqXTG2X'
 
     # imdb id search without login
     search_response = rpc_server.SearchSubtitles(

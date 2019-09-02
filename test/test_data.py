@@ -1,4 +1,5 @@
 import unittest
+import logging
 
 from unittest.mock import patch
 
@@ -7,10 +8,17 @@ from data.dataset_subtitle import (
     get_subtitles
 )
 
+# logging config
+logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
+
 
 class DataTestModule(unittest.TestCase):
 
+    logging.info("Preparing set up test for Data Module")
+
     def test_format_imdb_id(self):
+
+        logging.info("Format IMDB id test")
 
         # imdb_id equal to 5
         self.assertEqual(format_imdb_id(56231), 'tt0056231')
@@ -23,6 +31,8 @@ class DataTestModule(unittest.TestCase):
 
     def test_clean_text(self):
 
+        logging.info("Clean text test")
+
         # remove punctuation simbols
         text = "hello, world: this is .Python"
         text_result = "hello  world  this is  Python"
@@ -34,6 +44,8 @@ class DataTestModule(unittest.TestCase):
         self.assertEqual(clean_text(text), text_result)
 
     def test_get_zip_opensubtitles(self):
+
+        logging.info("Get zip opensubtitles test")
 
         enviroment = {
             'RPC_USER': 'danhidsan',
@@ -56,6 +68,8 @@ class DataTestModule(unittest.TestCase):
 
     def test_get_zip_yifysubtitles(self):
 
+        logging.info("Get zip yifysubtitles test")
+
         # good imdb id (Toy Story 3)
         imdb_id = '0435761'
         self.assertNotEqual(
@@ -69,6 +83,8 @@ class DataTestModule(unittest.TestCase):
         )
 
     def test_get_subtitles(self):
+
+        logging.info("Get subtitles test")
 
         # subtitle source not supported
         imdb_id = '0435761'

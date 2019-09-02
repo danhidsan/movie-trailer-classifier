@@ -133,3 +133,7 @@ samples/
 
 # pickle
 *.pickle
+
+# google credentials
+
+credentials.json

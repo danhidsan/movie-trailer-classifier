@@ -74,11 +74,13 @@ if __name__ == "__main__":
             for message in generator:
                 decoded = message.value.decode('utf-8')
                 dict_decoded = json.loads(decoded)
+                logging.info(
+                    "Classifying part of {}".format(dict_decoded['video_name'])
+                    )
                 result = {
                     'video_name': dict_decoded['video_name'],
                     'rated': classifier.predict(
                         dict_decoded['transcription']
                         )[0]
                 }
-                print(result)
                 producer.send_data(result)

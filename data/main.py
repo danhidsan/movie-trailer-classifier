@@ -4,12 +4,16 @@ import requests
 import time
 import random
 import sys
+import os
+
 import pandas as pd
 
 from dataset_subtitle import (
     get_subtitles, preprocessing_subtitles, format_imdb_id
     )
 from dataset_video import get_year
+
+FILE_PATH = os.path.abspath(os.path.dirname(__file__))
 
 # logging config
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
@@ -153,8 +157,12 @@ if __name__ == "__main__":
         logging.info('Starting load dataset')
 
         # load datasets
-        yt_movielens = pd.read_csv('data/datasets/ml-youtube.csv')
-        links_movielens = pd.read_csv('data/datasets/links.csv')
+        yt_movielens = pd.read_csv(
+            os.path.join(FILE_PATH, "datasets/ml-youtube.csv")
+            )
+        links_movielens = pd.read_csv(
+            os.path.join(FILE_PATH, "datasets/links.csv")
+            )
 
         # inner join datasets
         yt_movielens_imdb = pd.merge(
@@ -162,7 +170,7 @@ if __name__ == "__main__":
             left_on='movieId', right_on='movieId'
             )
 
-        with open('data/datasets/train_data2.csv', 'a') as file:
+        with open(os.path.join(FILE_PATH, 'datasets/train_data2.csv'), 'a') as file:
             logging.info('Opening csv')
             field_names = ['id', 'imdb_id', 'title', 'rated', 'subtitles']
             csv_writer = csv.DictWriter(
@@ -170,7 +178,7 @@ if __name__ == "__main__":
             )
 
             iterate_and_write_csv(
-                yt_movielens_imdb, csv_writer, start_id=737
+                yt_movielens_imdb, csv_writer, start_id=int(sys.argv[2])
                 )
 
     elif sys.argv[1] == 'random':
@@ -178,8 +186,12 @@ if __name__ == "__main__":
         logging.info('Starting load dataset randomly')
 
         # load datasets
-        yt_movielens = pd.read_csv('data/datasets/ml-youtube.csv')
-        links_movielens = pd.read_csv('data/datasets/links.csv')
+        yt_movielens = pd.read_csv(
+            os.path.join(FILE_PATH, "datasets/ml-youtube.csv")
+            )
+        links_movielens = pd.read_csv(
+            os.path.join(FILE_PATH, "datasets/links.csv")
+            )
 
         # inner join datasets
         yt_movielens_imdb = pd.merge(
@@ -189,10 +201,10 @@ if __name__ == "__main__":
 
         # load train dataset
         train_dataframe = pd.read_csv(
-            'data/datasets/train_dataset.csv', sep='|'
+            os.path.join(FILE_PATH, 'datasets/train_dataset.csv'), sep='|'
             )
 
-        with open('data/datasets/train_dataset.csv', 'a') as file:
+        with open(os.path.join(FILE_PATH, 'datasets/train_dataset.csv'), 'a') as file:
             logging.info('Opening csv')
             field_names = ['id', 'imdb_id', 'title', 'rated', 'subtitles']
             csv_writer = csv.DictWriter(
@@ -207,7 +219,6 @@ if __name__ == "__main__":
         print(
             """
             Error: Choose any of following params:
-                - preproccesing
                 - id
                 - random
             """
